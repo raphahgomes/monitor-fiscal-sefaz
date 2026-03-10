@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Documentos Fiscais{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">
+                <i class="fas fa-file-invoice text-primary-purple mr-2"></i>
+                Documentos Fiscais de Entrada
+            </h1>
+            <p class="text-gray-600 mt-1">NFe, CTe, MDFe, NFSe e CC-e emitidas contra o CNPJ da empresa</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{% url 'fiscal:importar_xml' %}" class="btn btn-secondary">
+                <i class="fas fa-upload mr-1"></i> Importar XML
+            </a>
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" class="btn btn-secondary">
+                    <i class="fas fa-download mr-1"></i> Exportar <i class="fas fa-caret-down ml-1"></i>
+                </button>
+                <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                    <a href="{% url 'fiscal:exportar_excel' %}?mes={{ mes }}&ano={{ ano }}{% if filtro_status != 'todos' %}&status={{ filtro_status }}{% endif %}{% if filtro_tipo != 'todos' %}&tipo={{ filtro_tipo }}{% endif %}"
+                       class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg">
+                        <i class="fas fa-file-excel text-green-600 mr-2"></i> Excel (.xlsx)
+                    </a>
+                    <a href="{% url 'fiscal:exportar_pdf' %}?mes={{ mes }}&ano={{ ano }}{% if filtro_status != 'todos' %}&status={{ filtro_status }}{% endif %}{% if filtro_tipo != 'todos' %}&tipo={{ filtro_tipo }}{% endif %}"
+                       class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg">
+                        <i class="fas fa-file-pdf text-red-600 mr-2"></i> PDF
+                    </a>
+                </div>
+            </div>
+            <form method="post" action="{% url 'fiscal:forcar_consulta' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary">
+                    <i class="fas fa-sync-alt mr-1"></i> Consultar SEFAZ
+                </button>
+            </form>
+            <a href="{% url 'fiscal:dashboard' %}" class="btn btn-primary">
+                <i class="fas fa-chart-line mr-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Resumo -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p class="text-sm text-gray-600">Total</p>
+            <p class="text-2xl font-bold text-gray-900">{{ total_geral }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p class="text-sm text-gray-600">Pendentes</p>
+            <p class="text-2xl font-bold text-yellow-600">{{ total_sem_manifestacao }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p class="text-sm text-gray-600">Ciência</p>
+            <p class="text-2xl font-bold text-blue-600">{{ total_ciencia }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p class="text-sm text-gray-600">Confirmadas</p>
+            <p class="text-2xl font-bold text-green-600">{{ total_confirmadas }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p class="text-sm text-gray-600">Valor Total</p>
+            <p class="text-xl font-bold text-gray-900">R$ {{ valor_total|floatformat:2|intcomma }}</p>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card p-4 mb-6">
+        <form method="get" class="flex flex-col lg:flex-row lg:items-end gap-4 flex-wrap">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Mês</label>
+                <select name="mes" class="border border-gray-300 rounded-lg px-3 py-2">
+                    {% for num, nome in meses %}
+                    <option value="{{ num }}" {% if mes == num %}selected{% endif %}>{{ nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ano</label>
+                <select name="ano" class="border border-gray-300 rounded-lg px-3 py-2">
+                    {% for a in anos_disponiveis %}
+                    <option value="{{ a }}" {% if ano == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+                <div class="relative">
+                    <input type="text" name="q" value="{{ filtro_busca }}" placeholder="Nome, CNPJ, NF..."
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Manifestação</label>
+                <select name="status" class="border border-gray-300 rounded-lg px-3 py-2">
+                    <option value="todos">Todos</option>
+                    <option value="sem_manifestacao" {% if filtro_status == 'sem_manifestacao' %}selected{% endif %}>Sem Manifestação</option>
+                    <option value="ciencia" {% if filtro_status == 'ciencia' %}selected{% endif %}>Ciência</option>
+                    <option value="confirmada" {% if filtro_status == 'confirmada' %}selected{% endif %}>Confirmada</option>
+                    <option value="desconhecida" {% if filtro_status == 'desconhecida' %}selected{% endif %}>Desconhecida</option>
+                    <option value="nao_realizada" {% if filtro_status == 'nao_realizada' %}selected{% endif %}>Não Realizada</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                <select name="tipo" class="border border-gray-300 rounded-lg px-3 py-2">
+                    <option value="todos">Todos</option>
+                    <option value="nfe" {% if filtro_tipo == 'nfe' %}selected{% endif %}>NF-e</option>
+                    <option value="cte" {% if filtro_tipo == 'cte' %}selected{% endif %}>CT-e</option>
+                    <option value="mdfe" {% if filtro_tipo == 'mdfe' %}selected{% endif %}>MDF-e</option>
+                    <option value="nfse" {% if filtro_tipo == 'nfse' %}selected{% endif %}>NFS-e</option>
+                    <option value="cce" {% if filtro_tipo == 'cce' %}selected{% endif %}>CC-e</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Papel</label>
+                <select name="papel" class="border border-gray-300 rounded-lg px-3 py-2">
+                    <option value="todos">Todos</option>
+                    <option value="destinatario" {% if filtro_papel == 'destinatario' %}selected{% endif %}>Destinatário</option>
+                    <option value="transportador" {% if filtro_papel == 'transportador' %}selected{% endif %}>Transportador</option>
+                    <option value="emitente" {% if filtro_papel == 'emitente' %}selected{% endif %}>Emitente</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter mr-1"></i> Filtrar
+            </button>
+            {% if filtro_busca or filtro_status != 'todos' or filtro_tipo != 'todos' or filtro_papel != 'todos' %}
+            <a href="{% url 'fiscal:documento_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times mr-1"></i> Limpar
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Emitente</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nº NF</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Papel</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Emissão</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Situação</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Manifestação</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for doc in documentos %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3">
+                            <p class="text-sm font-medium text-gray-900 truncate max-w-[200px]">{{ doc.emitente_nome|default:"—" }}</p>
+                            <p class="text-xs text-gray-500 font-mono">{{ doc.cnpj_formatado }}</p>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ doc.numero_nf|default:"—" }}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded {{ doc.tipo_badge_css }}">
+                                <i class="{{ doc.tipo_badge_icon }} mr-1"></i> {{ doc.get_tipo_documento_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if doc.papel_empresa %}
+                            <span class="px-2 py-0.5 text-xs font-medium rounded {{ doc.papel_badge_css }}">{{ doc.papel_badge_label }}</span>
+                            {% else %}<span class="text-xs text-gray-400">—</span>{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {% if doc.data_emissao %}{{ doc.data_emissao|date:"d/m/Y" }}{% else %}—{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                            {% if doc.valor_total %}R$ {{ doc.valor_total|floatformat:2|intcomma }}{% else %}—{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {% if doc.situacao == 'cancelada' %}
+                            <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">Cancelada</span>
+                            {% elif doc.situacao == 'denegada' %}
+                            <span class="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">Denegada</span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">Autorizada</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full {{ doc.badge_css }}">
+                                <i class="{{ doc.badge_icon }} mr-1"></i>
+                                {{ doc.get_status_manifestacao_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <a href="{% url 'fiscal:documento_detail' doc.pk %}" class="inline-flex items-center text-primary-purple hover:text-deep-purple" title="Detalhes">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="px-6 py-12 text-center text-gray-500">
+                            <i class="fas fa-inbox text-4xl text-gray-300 mb-4 block"></i>
+                            <p class="text-lg font-medium">Nenhum documento fiscal encontrado</p>
+                            <p class="mt-1 text-sm">
+                                {% if filtro_busca or filtro_status != 'todos' %}Tente ajustar os filtros.
+                                {% else %}Configure o certificado e consulte a SEFAZ.{% endif %}
+                            </p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% if page_obj.has_other_pages %}
+    <div class="mt-6 flex items-center justify-between">
+        <p class="text-sm text-gray-700">
+            Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ page_obj.paginator.count }} documentos
+        </p>
+        <nav class="flex items-center gap-1">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&mes={{ mes }}&ano={{ ano }}{% if filtro_busca %}&q={{ filtro_busca }}{% endif %}{% if filtro_status != 'todos' %}&status={{ filtro_status }}{% endif %}"
+               class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="px-3 py-2 text-sm font-bold bg-primary-purple text-white rounded-lg">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}&mes={{ mes }}&ano={{ ano }}{% if filtro_busca %}&q={{ filtro_busca }}{% endif %}{% if filtro_status != 'todos' %}&status={{ filtro_status }}{% endif %}"
+                   class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&mes={{ mes }}&ano={{ ano }}{% if filtro_busca %}&q={{ filtro_busca }}{% endif %}{% if filtro_status != 'todos' %}&status={{ filtro_status }}{% endif %}"
+               class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

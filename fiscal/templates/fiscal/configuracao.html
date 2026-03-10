@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuração Fiscal{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">
+            <i class="fas fa-cog text-primary-purple mr-2"></i> Configuração Fiscal
+        </h1>
+        <p class="text-gray-600 mt-1">Certificado digital, CNPJ e parâmetros de consulta à SEFAZ</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Formulário -->
+        <div class="lg:col-span-2">
+            <div class="card p-6">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="space-y-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">CNPJ da Empresa</label>
+                                <input type="text" name="cnpj" value="{{ config.cnpj|default:'' }}"
+                                       placeholder="00.000.000/0000-00"
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">UF (Código IBGE)</label>
+                                <input type="text" name="uf_codigo" value="{{ config.uf_codigo|default:'35' }}"
+                                       placeholder="35"
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <p class="text-xs text-gray-400 mt-1">Ex: 35 = SP, 33 = RJ, 31 = MG</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Caminho do Certificado (.pfx)</label>
+                            <input type="text" name="caminho_certificado" value="{{ config.caminho_certificado|default:'' }}"
+                                   placeholder="/caminho/para/certificado.pfx"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Senha do Certificado</label>
+                            <input type="password" name="senha_certificado"
+                                   placeholder="{% if config and config.senha_certificado %}••••••••{% else %}Informe a senha{% endif %}"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <p class="text-xs text-gray-400 mt-1">Armazenada com criptografia AES-256. Deixe em branco para manter.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Ambiente</label>
+                            <select name="ambiente" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="1" {% if config and config.ambiente == 1 %}selected{% endif %}>Produção</option>
+                                <option value="2" {% if config and config.ambiente == 2 %}selected{% endif %}>Homologação</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" name="ativo" id="ativo"
+                                   {% if not config or config.ativo %}checked{% endif %}
+                                   class="rounded border-gray-300 text-primary-purple focus:ring-primary-purple">
+                            <label for="ativo" class="ml-2 text-sm text-gray-700">Consulta automática ativa</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i> Salvar Configuração
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sidebar: NSU + Logs -->
+        <div class="space-y-6">
+            {% if config %}
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-database text-gray-400 mr-2"></i> Estado NSU
+                </h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Último NSU (NFe/CTe)</span>
+                        <span class="font-mono font-medium">{{ config.ult_nsu }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Máximo NSU</span>
+                        <span class="font-mono font-medium">{{ config.max_nsu }}</span>
+                    </div>
+                    {% if config.ult_nsu_nfse %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Último NSU (NFSe)</span>
+                        <span class="font-mono font-medium">{{ config.ult_nsu_nfse }}</span>
+                    </div>
+                    {% endif %}
+                    {% if config.ultima_consulta %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Última consulta</span>
+                        <span class="text-xs">{{ config.ultima_consulta|timesince }} atrás</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-history text-gray-400 mr-2"></i> Log de Consultas
+                </h3>
+                <div class="space-y-2">
+                    {% for log in logs %}
+                    <div class="flex items-start gap-2 py-2 text-sm {% if not forloop.last %}border-b border-gray-100{% endif %}">
+                        {% if log.sucesso %}<i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                        {% else %}<i class="fas fa-times-circle text-red-500 mt-0.5"></i>{% endif %}
+                        <div>
+                            <p class="text-gray-800">{{ log.documentos_encontrados }} doc(s) · cStat {{ log.codigo_retorno|default:"—" }}</p>
+                            <p class="text-xs text-gray-500">{{ log.data_consulta|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-sm text-gray-500 text-center">Nenhuma consulta registrada.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

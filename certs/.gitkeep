@@ -1,0 +1,3 @@
+# certs/
+# Coloque aqui o certificado digital A1 (.pfx) da empresa.
+# NUNCA commite certificados reais neste repositório.

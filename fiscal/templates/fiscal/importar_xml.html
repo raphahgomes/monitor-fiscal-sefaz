@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Importar XML{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="mb-6">
+        <nav class="text-sm text-gray-500 mb-2">
+            <a href="{% url 'fiscal:dashboard' %}" class="hover:text-primary-purple">Fiscal</a>
+            <span class="mx-2">›</span>
+            <span class="text-gray-900">Importar XML</span>
+        </nav>
+        <h1 class="text-2xl font-bold text-gray-900">
+            <i class="fas fa-upload text-primary-purple mr-2"></i> Importar XML
+        </h1>
+        <p class="text-gray-600 mt-1">Importe manualmente arquivos XML de NFe, CTe, MDFe, NFSe ou CC-e</p>
+    </div>
+
+    <div class="max-w-2xl">
+        <!-- Upload de Arquivos -->
+        <div class="card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-file-upload text-gray-400 mr-2"></i> Upload de Arquivos XML
+            </h2>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary-purple transition"
+                     x-data="{ files: [] }"
+                     @dragover.prevent="$el.classList.add('border-primary-purple', 'bg-purple-50')"
+                     @dragleave="$el.classList.remove('border-primary-purple', 'bg-purple-50')"
+                     @drop.prevent="$el.classList.remove('border-primary-purple', 'bg-purple-50'); files = $event.dataTransfer.files; $refs.fileInput.files = files">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                    <p class="text-gray-600 mb-2">Arraste arquivos XML aqui ou</p>
+                    <label class="btn btn-primary cursor-pointer">
+                        <i class="fas fa-folder-open mr-1"></i> Selecionar Arquivos
+                        <input type="file" name="arquivos_xml" multiple accept=".xml"
+                               x-ref="fileInput"
+                               @change="files = $event.target.files"
+                               class="hidden">
+                    </label>
+                    <template x-if="files.length > 0">
+                        <div class="mt-4 text-left">
+                            <p class="text-sm font-medium text-gray-700 mb-2">
+                                <span x-text="files.length"></span> arquivo(s) selecionado(s):
+                            </p>
+                            <template x-for="file in files">
+                                <p class="text-xs text-gray-500 font-mono" x-text="file.name"></p>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+                <button type="submit" class="mt-4 btn btn-primary w-full justify-center">
+                    <i class="fas fa-upload mr-2"></i> Importar
+                </button>
+            </form>
+        </div>
+
+        <!-- Dicas -->
+        <div class="card p-6">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">
+                <i class="fas fa-info-circle text-blue-500 mr-1"></i> Tipos suportados
+            </h3>
+            <ul class="text-sm text-gray-600 space-y-2">
+                <li class="flex items-center gap-2">
+                    <i class="fas fa-check text-green-500"></i> NF-e (Nota Fiscal Eletrônica)
+                </li>
+                <li class="flex items-center gap-2">
+                    <i class="fas fa-check text-green-500"></i> CT-e (Conhecimento de Transporte)
+                </li>
+                <li class="flex items-center gap-2">
+                    <i class="fas fa-check text-green-500"></i> MDF-e (Manifesto de Documentos Fiscais)
+                </li>
+                <li class="flex items-center gap-2">
+                    <i class="fas fa-check text-green-500"></i> NFS-e (Nota Fiscal de Serviço)
+                </li>
+                <li class="flex items-center gap-2">
+                    <i class="fas fa-check text-green-500"></i> CC-e (Carta de Correção Eletrônica)
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+# Monitor Fiscal SEFAZ
+
+Django>=5.0,<6.0
+cryptography>=42.0
+requests>=2.31
+pytz>=2024.1
+
+# Celery (opcional — para consulta automática periódica)
+celery>=5.3
+redis>=5.0
+
+# Exportação
+openpyxl>=3.1
+weasyprint>=61.0
+
+# Servidor
+gunicorn>=21.2
+psycopg2-binary>=2.9

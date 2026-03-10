@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentos Fiscais — {{ mes_nome }} {{ ano }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #333; }
+        .header { background: #1F4E79; color: white; padding: 20px 30px; display: flex; align-items: center; justify-content: space-between; }
+        .header h1 { font-size: 18px; font-weight: bold; }
+        .header p { font-size: 10px; opacity: 0.8; }
+        .summary { padding: 15px 30px; background: #f8f9fa; border-bottom: 1px solid #ddd; display: flex; gap: 30px; }
+        .summary-item { text-align: center; }
+        .summary-item .value { font-size: 16px; font-weight: bold; color: #1F4E79; }
+        .summary-item .label { font-size: 9px; color: #666; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th { background: #1F4E79; color: white; padding: 8px 10px; text-align: left; font-size: 9px; text-transform: uppercase; }
+        td { padding: 6px 10px; border-bottom: 1px solid #eee; font-size: 10px; }
+        tr:nth-child(even) { background: #f9f9fa; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .badge { padding: 2px 6px; border-radius: 3px; font-size: 8px; font-weight: bold; }
+        .badge-green { background: #d4edda; color: #155724; }
+        .badge-yellow { background: #fff3cd; color: #856404; }
+        .badge-blue { background: #cce5ff; color: #004085; }
+        .badge-red { background: #f8d7da; color: #721c24; }
+        .footer { padding: 15px 30px; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #ddd; }
+        @page { size: A4 landscape; margin: 10mm; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Relatório de Documentos Fiscais</h1>
+            <p>{{ mes_nome }} {{ ano }}</p>
+        </div>
+        <div style="text-align: right;">
+            <p>Monitor Fiscal SEFAZ</p>
+            <p>Gerado em {{ data_geracao|date:"d/m/Y H:i" }}</p>
+        </div>
+    </div>
+
+    <div class="summary">
+        <div class="summary-item">
+            <div class="value">{{ total_docs }}</div>
+            <div class="label">Total Docs</div>
+        </div>
+        <div class="summary-item">
+            <div class="value">{{ total_nfe }}</div>
+            <div class="label">NF-e</div>
+        </div>
+        <div class="summary-item">
+            <div class="value">{{ total_cte }}</div>
+            <div class="label">CT-e</div>
+        </div>
+        <div class="summary-item">
+            <div class="value">{{ total_mdfe }}</div>
+            <div class="label">MDF-e</div>
+        </div>
+        <div class="summary-item">
+            <div class="value" style="color: #28a745;">R$ {{ valor_total|floatformat:2 }}</div>
+            <div class="label">Valor Total</div>
+        </div>
+    </div>
+
+    <div style="padding: 0 15px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Nº NF</th>
+                    <th>Emitente</th>
+                    <th>CNPJ</th>
+                    <th class="text-right">Valor</th>
+                    <th class="text-center">Emissão</th>
+                    <th class="text-center">Manifestação</th>
+                    <th>Chave de Acesso</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documentos %}
+                <tr>
+                    <td>{{ doc.get_tipo_documento_display }}</td>
+                    <td>{{ doc.numero_nf|default:"—" }}</td>
+                    <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ doc.emitente_nome|default:"—" }}</td>
+                    <td style="font-family: monospace; font-size: 9px;">{{ doc.cnpj_formatado }}</td>
+                    <td class="text-right" style="font-weight: bold;">
+                        {% if doc.valor_total %}R$ {{ doc.valor_total|floatformat:2 }}{% else %}—{% endif %}
+                    </td>
+                    <td class="text-center">{% if doc.data_emissao %}{{ doc.data_emissao|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+                    <td class="text-center">
+                        {% if doc.status_manifestacao == 'confirmada' %}<span class="badge badge-green">Confirmada</span>
+                        {% elif doc.status_manifestacao == 'ciencia' %}<span class="badge badge-blue">Ciência</span>
+                        {% elif doc.status_manifestacao == 'sem_manifestacao' %}<span class="badge badge-yellow">Pendente</span>
+                        {% else %}<span class="badge badge-red">{{ doc.get_status_manifestacao_display }}</span>{% endif %}
+                    </td>
+                    <td style="font-family: monospace; font-size: 8px; word-break: break-all;">{{ doc.chave_acesso }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center" style="padding: 20px; color: #999;">Nenhum documento encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        Documento gerado automaticamente pelo Monitor Fiscal SEFAZ &mdash; {{ data_geracao|date:"d/m/Y H:i" }}
+    </div>
+</body>
+</html>

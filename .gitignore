@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+*.log
+media/
+staticfiles/
+static/collected/
+
+# Environment
+.env
+*.env.local
+
+# Certificados (NUNCA commitar certificados reais!)
+certs/*.pfx
+certs/*.pem
+certs/*.key
+certs/*.crt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Logs
+logs/*.log
+
+# Temp
+temp_*/
+tmp/
